@@ -1,5 +1,6 @@
 regexp:\.goo.*\.com$
 google.com
+www.google.com
 
 4pda.to
 4pda.ws
@@ -950,7 +951,7 @@ mongodb.com
 
 zerotier.com
 forum.syncthing.net
- 
+
 openwrt.org
 vod.streamgum.com
 windowsupdate.com
@@ -1099,24 +1100,24 @@ labs.google
 aisandbox-pa.googleapis.com
 stitch.withgoogle.com
 
-dis.gd 
-discord.co 
-discord.com 
-discord.design 
-discord.dev 
-discord.gg 
-discord.gift 
-discord.gifts 
-discord.media 
-discord.new 
-discord.store 
-discord.tools 
-discordapp.com 
-discordapp.net 
+dis.gd
+discord.co
+discord.com
+discord.design
+discord.dev
+discord.gg
+discord.gift
+discord.gifts
+discord.media
+discord.new
+discord.store
+discord.tools
+discordapp.com
+discordapp.net
 discordmerch.com
-discordpartygames.com 
-discord-activities.com 
-discordactivities.com 
+discordpartygames.com
+discord-activities.com
+discordactivities.com
 discordsays.com
 discord-attachments-uploads-prd.storage.googleapis.com
 
@@ -1335,3 +1336,25 @@ jules.google.com
 
 labs.google
 aisandbox-pa.googleapis.com
+gemini.google.com
+aistudio.google.com
+generativelanguage.googleapis.com
+aitestkitchen.withgoogle.com
+aisandbox-pa.googleapis.com
+webchannel-alkalimakersuite-pa.clients6.google.com
+alkalimakersuite-pa.clients6.google.com
+assistant-s3-pa.googleapis.com
+proactivebackend-pa.googleapis.com
+o.pki.goog
+labs.google
+notebooklm.google
+notebooklm.google.com
+
+proactivebackend-pa.googleapis.com
+google.com
+gemini.google.com
+android.googleapis.com
+play.googleapis.com
+gcm-http.googleapis.com
+accounts.google.com
+gstatic.com
