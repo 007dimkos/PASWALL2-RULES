@@ -9,7 +9,7 @@ NC='\033[0m'
 
 clear
 echo -e "${CYAN}Модифицированный Passwall2 скрипт от AmirHossein (ash-compatible)${NC}"
-echo -e "${CYAN}С меню выбора версии (by Grok & Gemini)${NC}"
+echo -e "${CYAN}С меню выбора версии (Fixed Rollback by Gemini)${NC}"
 echo ""
 echo "1. Полная установка последней версии (как оригинал Amir)"
 echo "2. Обновить только Passwall2 и Xray"
@@ -151,16 +151,15 @@ elif [ "$choice" = "2" ]; then
 elif [ "$choice" = "3" ]; then
     echo -e "${YELLOW}Поиск версий на GitHub (xiaorouji)...${NC}"
     
-    # 1. Определяем архитектуру
     . /etc/openwrt_release
     ARCH=$DISTRIB_ARCH
     [ -z "$ARCH" ] && ARCH=$(opkg print-architecture | awk 'NR==1{print $2}')
     
-    # 2. Получаем список тегов (версий)
+    # Получаем список тегов через API GitHub
     RELEASES=$(wget -qO- https://api.github.com/repos/xiaorouji/openwrt-passwall/releases | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 10)
     
     if [ -z "$RELEASES" ]; then
-        echo -e "${RED}Не удалось получить список версий с GitHub${NC}"
+        echo -e "${RED}Ошибка: Не удалось получить список версий с GitHub${NC}"
         exit 1
     fi
 
@@ -170,36 +169,53 @@ elif [ "$choice" = "3" ]; then
     read num
     
     SELECTED_VER=$(echo "$RELEASES" | sed -n "${num}p")
-    if [ -z "$SELECTED_VER" ]; then echo -e "${RED}Ошибка выбора${NC}"; exit 1; fi
-
-    # 3. Подготовка и скачивание
-    WORKDIR="/tmp/pw_rollback"
-    rm -rf $WORKDIR && mkdir -p $WORKDIR && cd $WORKDIR
-    BASE_URL="https://github.com/xiaorouji/openwrt-passwall/releases/download/$SELECTED_VER"
-
-    echo -e "${YELLOW}Скачивание пакетов для $ARCH...${NC}"
-    
-    # Пытаемся найти основной пакет luci
-    wget "$BASE_URL/luci-app-passwall_${SELECTED_VER}_all.ipk" -O "pw.ipk" || \
-    wget "$BASE_URL/luci-23.05_luci-app-passwall_${SELECTED_VER}_all.ipk" -O "pw.ipk"
-
-    # Скачиваем архив с зависимостями (Xray и др)
-    wget "$BASE_URL/passwall_packages_ipk_${ARCH}.zip" -O "pkgs.zip"
-
-    if [ ! -f "pw.ipk" ] || [ ! -f "pkgs.zip" ]; then
-        echo -e "${RED}Файлы не найдены. Возможно, для этой версии нет сборки под $ARCH${NC}"
+    if [ -z "$SELECTED_VER" ]; then
+        echo -e "${RED}Неверный выбор${NC}"
         exit 1
     fi
 
-    # 4. Установка
-    unzip -o pkgs.zip
-    echo -e "${YELLOW}Принудительная установка (Downgrade)...${NC}"
-    opkg install *.ipk --force-downgrade
-    opkg install pw.ipk --force-downgrade
+    WORKDIR="/tmp/pw_rollback"
+    rm -rf $WORKDIR && mkdir -p $WORKDIR && cd $WORKDIR
     
-    rm -rf $WORKDIR
+    echo -e "${YELLOW}Скачивание пакетов для архитектуры $ARCH...${NC}"
+    BASE_URL="https://github.com/xiaorouji/openwrt-passwall/releases/download/$SELECTED_VER"
+    
+    # В новых релизах luci-app-passwall лежит ВНУТРИ zip-архива вместе с xray
+    wget "$BASE_URL/passwall_packages_ipk_${ARCH}.zip" -O "pkgs.zip"
+
+    if [ ! -f "pkgs.zip" ]; then
+        echo -e "${RED}Ошибка: Архив для версии $SELECTED_VER не найден!${NC}"
+        exit 1
+    fi
+
+    echo -e "${YELLOW}Распаковка...${NC}"
+    unzip -o pkgs.zip
+
+    # Ищем файл интерфейса внутри распакованного архива
+    LUCI_FILE=$(ls luci-app-passwall_${SELECTED_VER}_all.ipk 2>/dev/null | head -n 1)
+    
+    # Если в архиве нет, пробуем скачать отдельно (для очень старых версий)
+    if [ -z "$LUCI_FILE" ]; then
+        wget "$BASE_URL/luci-app-passwall_${SELECTED_VER}_all.ipk" -O "manual_luci.ipk"
+        LUCI_FILE="manual_luci.ipk"
+    fi
+
+    echo -e "${YELLOW}Принудительная установка версии $SELECTED_VER...${NC}"
+    
+    # Сначала удаляем текущую версию, чтобы избежать конфликтов путей
+    opkg remove luci-app-passwall2 --force-depends
+    
+    # Устанавливаем все пакеты из папки (ядра + интерфейс)
+    opkg install *.ipk --force-downgrade --force-reinstall
+
+    # Очистка кэша интерфейса
+    rm -rf /tmp/luci-indexcache
+    
+    /etc/init.d/passwall restart 2>/dev/null
     /etc/init.d/passwall2 restart 2>/dev/null
-    echo -e "${GREEN}Успешно откачено до $SELECTED_VER${NC}"
+    
+    echo -e "${GREEN}Готово! Теперь установлена версия $SELECTED_VER${NC}"
+    cd / && rm -rf $WORKDIR
 
 elif [ "$choice" = "4" ]; then
     exit 0
